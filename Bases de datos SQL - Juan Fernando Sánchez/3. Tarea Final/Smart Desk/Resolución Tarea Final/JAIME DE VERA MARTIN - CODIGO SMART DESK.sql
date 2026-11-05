@@ -1,0 +1,126 @@
+-- EVALUACIÓN PRÁCTICA EN SQL SOBRE EL CASO DE SMART DESK
+
+-- 1. CONFIGURAMOS EL CONTEXTO
+USE ROLE TRAINING_ROLE;
+USE WAREHOUSE CHIPMUNK_WH;
+USE DATABASE CHIPMUNK_DB;
+USE SCHEMA SMART_DESK;
+
+-- 2. ANÁLISIS EXPLORATORIO
+   --2.1. TABLA ACCOUNTS (CLIENTES ACTUALES Y POTENCIALES)
+SELECT ACCOUNT_LEVEL,
+    COUNT(*) AS "Total filas",
+FROM ACCOUNTS
+GROUP BY ACCOUNT_LEVEL;
+
+   --2.2. TABLA SALES (VENTAS DE CLIENTES ACTUALES)
+SELECT COUNT(*) AS Num_transacciones,
+    MIN(YEAR) AS "Primer Año",
+    MAX(YEAR) AS "Último Año",
+    SUM(TOTAL) AS "Ventas totales ($)",
+    SUM(PROFIT) AS "Beneficio Total ($)"
+FROM SALES;
+
+   -- 2.3. TABLA FORECASTS (PREDICCIONES DE DINERO FUTURO DE TODOS LOS CLIENTES)
+SELECT PREDICTION_CATEGORY,
+    SUM(FORECAST) AS "Valor Total Forecast",
+    COUNT(*) AS "Número Oportunidades"
+FROM FORECASTS
+GROUP BY PREDICTION_CATEGORY;
+
+    -- 2.4. VALIDACIÓN DE LA LÓGICA DE NEGOCIO
+SELECT
+    (SELECT COUNT(S.ACCOUNT) AS Ventas_de_Prospects
+    FROM SALES AS S JOIN ACCOUNTS AS A
+    ON S.ACCOUNT = A.ACCOUNT
+    WHERE A.ACCOUNT_LEVEL = 'Prospect'
+    ) AS "Ventas de CLientes Potenciales",
+    
+    (SELECT COUNT(F.ACCOUNT)
+    FROM FORECASTS AS F JOIN ACCOUNTS AS A
+    ON F.ACCOUNT = A.ACCOUNT
+    WHERE A.ACCOUNT_LEVEL = 'Prospect'
+    ) AS "Oportunidades Totales de Clientes Potenciales",
+
+    (SELECT COUNT(DISTINCT F.ACCOUNT)
+    FROM FORECASTS AS F JOIN ACCOUNTS AS A
+    ON F.ACCOUNT = A.ACCOUNT
+    WHERE A.ACCOUNT_LEVEL = 'Prospect'
+    ) AS "Clientes Potenciales Únicos con Oportunidades";
+    
+-- 3.  ANÁLISIS DE VENTAS Y BENECIFIO POR CATEGORÍA DE PRODUCTO (Adabs Entertainment en el año 2020)
+SELECT CATEGORY AS "Categoría",
+        MAINTENANCE AS "Mantenimiento ($)",
+        PRODUCT AS "Producto ($)",
+        PARTS AS "Partes ($)",
+        SUPPORT AS "Soporte ($)",
+        TOTAL AS "Total Ventas ($)",
+        UNITS_SOLD AS "Unidades Vendidas",
+        PROFIT AS "Beneficio Total ($)"
+FROM SALES
+WHERE ACCOUNT='Adabs Entertainment' AND YEAR=2020;
+
+-- 4. COMPARACIÓN DE RENDIMIENTO POR PAÍS EN REGIONES APAC Y EMEA
+SELECT REGION AS "Región",
+        COUNTRY AS "País",
+        ROUND(AVG(TOTAL), 2) AS "Ingreso Promedio ($)",
+        ROUND(AVG(UNITS_SOLD), 2) AS "Unidades Vendidas Promedio",
+        ROUND(AVG(PROFIT), 2) AS "Beneficio Promedio ($)"
+FROM SALES AS S JOIN ACCOUNTS AS A
+ON S.ACCOUNT = A.ACCOUNT
+WHERE REGION = 'APAC' OR REGION = 'EMEA'
+GROUP BY REGION, COUNTRY
+ORDER BY "Beneficio Promedio ($)" DESC;
+
+-- 5. ANÁLISIS DEL BENEFICIO TOTAL POR INDUSTRIA: ESTUDIO DE CLIENTES EN ETAPA DE COMPROMISO
+WITH Acuerdos_cercanos_al_cierre AS (SELECT DISTINCT ACCOUNT
+                                    FROM Forecasts
+                                    WHERE PREDICTION_CATEGORY = 'Commit' AND FORECAST > 500000
+                                    )
+SELECT A.INDUSTRY,
+        SUM(PROFIT) AS "TOTAL_PROFIT ($)",
+        CASE
+            WHEN SUM(S.PROFIT) > 1000000 THEN 'ALTO'
+            ELSE 'NORMAL'
+        END AS BENEFIT_CATEGORY
+FROM Sales AS S JOIN Accounts AS A 
+ON S.ACCOUNT = A.ACCOUNT
+WHERE S.ACCOUNT IN (SELECT ACCOUNT FROM Acuerdos_cercanos_al_cierre)
+GROUP BY A.INDUSTRY;
+
+-- 6. EVOLUCIÓN DEL PRONÓSTICO Y DEL BENEFICIO REAL: ANÁLISIS DE LA TRAYECTORIA POR CATEGORÍA
+WITH SALES_2021 AS (SELECT CATEGORY,
+                    SUM(PROFIT) AS "BENEFICIO ($)"
+                    FROM SALES
+                    WHERE YEAR = 2021
+                    GROUP BY CATEGORY
+                    ),
+
+Forecasts_2022 AS (SELECT CATEGORY,
+                    SUM(FORECAST) AS "PREVISIÓN_BENEFICIO ($)",
+                    MIN(OPPORTUNITY_AGE) AS "OPORTUNIDAD_MÁS_RECIENTE (DÍAS)",
+                    MAX(OPPORTUNITY_AGE) AS "OPORTUNIDAD_MÁS_ANTIGUA (DÍAS)"
+                    FROM Forecasts
+                    WHERE YEAR = 2022
+                    GROUP BY CATEGORY
+                    )
+
+SELECT COALESCE (S.CATEGORY, F.CATEGORY) AS "CATEGORÍA",
+S."BENEFICIO ($)",
+F."PREVISIÓN_BENEFICIO ($)",
+F."OPORTUNIDAD_MÁS_RECIENTE (DÍAS)",
+F."OPORTUNIDAD_MÁS_ANTIGUA (DÍAS)"
+FROM Sales_2021 AS S FULL OUTER JOIN Forecasts_2022 AS F
+ON S.CATEGORY = F.CATEGORY;
+
+-- 7. INDUSTRIAS MÁS RENTABLES: ¿QUÉ INDUSTRIAS GENERAN EL MAYOR BENEFICIO Y CUÁLES TIENEN UN ALTO VOLUMEN DE VENTAS PERO BAJOS MÁRGENES?
+SELECT A.INDUSTRY AS "Industria",
+SUM(S.TOTAL) AS "Ventas totales ($)",
+SUM(S.PROFIT) AS "Beneficio total ($)",
+COUNT(*) AS "Número de ventas",
+ROUND(SUM(S.PROFIT) / SUM(S.TOTAL) * 100, 2) AS "Margen de beneficio (%)",
+ROUND(AVG(PROFIT), 2) AS "Beneficio promedio por venta ($)"
+FROM SALES AS S JOIN ACCOUNTS AS A
+ON S.ACCOUNT = A.ACCOUNT
+GROUP BY A.INDUSTRY
+ORDER BY "Beneficio total ($)" DESC;

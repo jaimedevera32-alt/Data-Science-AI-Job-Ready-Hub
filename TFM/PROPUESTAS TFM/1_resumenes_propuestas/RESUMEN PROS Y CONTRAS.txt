@@ -1,0 +1,43 @@
+IA2IAh — AImotional Field Theory (AFT)
+A favor. Es la propuesta más original y académicamente ambiciosa. La interpretabilidad de LLMs es uno de los campos más calientes en investigación de IA ahora mismo, por lo que tiene potencial real de derivar en publicación. La filosofía de falsación le da rigor científico poco habitual en un TFM.
+En contra. Es la que peor encaja con el perfil del máster. No tiene componente de Big Data, el ángulo de Business Analytics es prácticamente inexistente, y el trabajo se aproxima más a un doctorado en ciencias cognitivas computacionales que a un TFM de Data Science aplicado. La validación empírica de las "IAmotions" es técnicamente muy incierta y el riesgo de acabar el máster sin resultados concluyentes es alto. Requiere conocimiento profundo de mechanistic interpretability que va bastante más allá del temario habitual de este tipo de máster.
+
+IMDEA — Asistente IA Local + RAG para Metadatos Científicos
+A favor. Muy bien acotada y con entregables claros (prototipo funcional, informe de benchmarking local vs. nube). El componente de RAG, embeddings y búsqueda vectorial es muy demandado ahora mismo en el mercado. Trabajar con datos reales de un centro de investigación puntero es un plus para el CV.
+En contra. Es más un proyecto de ingeniería de software que de Data Science en sentido estricto. El conjunto de evaluación de 30-50 archivos es pequeño para hablar de Big Data, y la parte de Machine Learning es limitada. La orientación es científica, no empresarial, lo que encaja menos con el eje de Business Analytics del máster.
+
+Sandoz — AutoComments (Informes Financieros)
+A favor. Tiene el caso de negocio más claro y cuantificable de todas las propuestas: reducción de horas de analistas senior, estandarización de informes, ROI medible. El componente Text-to-SQL añade profundidad técnica interesante. Sandoz es una empresa grande (Novartis), lo que implica datos reales y posiblemente continuidad laboral.
+En contra. El problema de NLG sobre datos financieros está ya bastante cubierto por herramientas comerciales (Copilot, herramientas de BI con IA generativa), lo que hace difícil diferenciarse académicamente. La validación de la calidad de los comentarios es subjetiva y metodológicamente complicada. El componente de Machine Learning predictivo es escaso.
+
+Sandoz — Price Erosion (Biosimilares)
+A favor. Es la propuesta de Sandoz técnicamente más sólida y la que mejor encaja con el perfil del máster. Tiene un problema de predicción cuantitativa claro (forecasting de precios por SKU), una arquitectura híbrida ML + LLM interesante, y la explicabilidad de modelos es un eje de creciente importancia tanto en academia como en industria farmacéutica. Los datos históricos de ventas/precios tienen volumen suficiente para hacer algo serio.
+En contra. La disponibilidad real de datos anonimizados es el riesgo principal: si hay problemas de acceso o de granularidad a nivel de SKU, el trabajo se puede quedar corto. Exige cierto conocimiento del mercado farmacéutico para interpretar los drivers de erosión con sentido. El componente LLM puede quedar superficial si no se diseña bien.
+
+Sandoz — The Extractor (Datos Regulatorios EMA/FDA)
+A favor. Problema real y bien definido, con un impacto operativo tangible. El componente de trazabilidad para validación humana (fuente + página exacta) es una práctica madura que demuestra sensatez en el diseño. Trabajar con fuentes regulatorias como la EMA tiene interés en la industria.
+En contra. Es fundamentalmente un proyecto de scraping + prompt engineering, lo que lo convierte en el menos intensivo en Data Science de las tres propuestas de Sandoz. Tiene poco ML y poco Big Data. Los portales regulatorios cambian con frecuencia, lo que añade fragilidad técnica. Es difícil hacer de esto una contribución académica diferencial.
+
+TUI — Desafío 1: Monitor de Sentimiento y Tendencias Experienciales
+A favor. Encaja bien con los tres ejes del máster: datos masivos de redes sociales (Big Data), NLP y análisis de sentimiento (Data Science), e inteligencia para decisiones de negocio turístico (Business Analytics). El Índice de Autenticidad y Experiencia es una métrica novedosa que puede dar identidad propia al TFM.
+En contra. La recogida de datos de TikTok e Instagram tiene restricciones de API cada vez más severas, lo que puede comprometer la viabilidad. Validar un índice de "autenticidad" es subjetivo y metodológicamente resbaladizo. Requiere procesamiento multilingüe no trivial.
+
+TUI — Desafío 2: Motor de Recomendaciones y Redistribución de Demanda
+A favor. Posiblemente el proyecto con mayor profundidad técnica de los cuatro de TUI. Combina deep learning, graph analytics y modelos bayesianos espaciales, lo que demuestra un amplio dominio del máster. La Tourism Demand Redistribution Score es una métrica original y el problema de redistribuir demanda turística tiene relevancia real (overtourism es un problema crítico en España). Muy publicable.
+En contra. La ambición técnica puede ser excesiva para el tiempo disponible de un TFM. El cold start (sin datos históricos del usuario) es un problema estructural difícil de resolver. El acceso a datos reales de TUI con suficiente granularidad es incierto.
+
+TUI — Desafío 3: Dashboard de Gestión de Oferta Georreferenciada
+A favor. El componente de análisis geoespacial es un skill diferenciador y muy valorado en el mercado. La integración de datos abiertos (catastro, ESG, etc.) es factible y práctica. Tiene entregables visuales claros y comprensibles para el tribunal.
+En contra. Es el más cercano a un proyecto de Business Intelligence tradicional, con menos innovación en ML. El riesgo de quedarse en un proyecto de integración de datos y visualización sin contribución analítica significativa es alto. Encaja bien con Business Analytics pero menos con Data Science y Big Data.
+
+TUI — Desafío 4: Mapas de Accesibilidad y Movilidad Sostenible
+A favor. El análisis de isócronas y la optimización multiobjetivo de rutas son técnicamente rigurosos. El Índice de Movilidad Sostenible Turística es un entregable concreto y con impacto de política pública.
+En contra. Es el más especializado en GIS/análisis de redes, lo que lo aleja del núcleo del máster. Tiene poco ML estadístico y poca orientación a Business Analytics en sentido amplio. Se parece más a un proyecto de urbanismo o logística que de Data Science.
+
+Resumen orientativo
+Si tuvieras que ordenarlos por ajuste al perfil del máster (Data Science + Big Data + Business Analytics):
+Mejor ajuste técnico y de negocio: Price Erosion (Sandoz) y Desafío 2 TUI, ambos con buena profundidad ML y caso de negocio real.
+Mejor ajuste si priorizas empleabilidad inmediata: AutoComments (Sandoz) o IMDEA, proyectos bien acotados con tecnología muy demandada.
+Más originales/arriesgados: IA2IAh (máximo riesgo, máxima diferenciación) y Desafío 1 TUI (relevante, pero dependiente de datos difíciles).
+Más orientados a visualización/BI que a DS puro: Desafíos 3 y 4 de TUI, y The Extractor.
+¿Tienes ya alguna preferencia de sector o de tecnología concreta? Con eso podría ayudarte a afinar más la elección.

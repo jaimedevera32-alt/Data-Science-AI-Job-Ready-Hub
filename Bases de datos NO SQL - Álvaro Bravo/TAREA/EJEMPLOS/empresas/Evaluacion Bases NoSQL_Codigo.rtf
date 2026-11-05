@@ -1,0 +1,190 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang3082{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\colortbl ;\red0\green176\blue80;\red79\green129\blue189;}
+{\*\generator Riched20 10.0.17134}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\qj\f0\fs22\lang10\par
+\cf1\b # EVALUACI\'d3N DE BASES DE DATOS NO SQL\par
+# Alberto Castell\'f3\par
+\cf2\b0\par
+# CARGA DE DATOS\cf0\par
+mongoimport --db clase --collection companies --type json --file "D:\\MASTER\\4_BASES DATOS NO SQL\\companies.json" --drop --stopOnError\par
+\par
+\cf2 # COMPA\'d1\'cdAS FUNDADAS Y DESAPARECIDAS POR A\'d1O\cf0\par
+
+\pard\sl276\slmult1\qj db.companies.aggregate([\par
+                    \{$match: \{"founded_year": \{$ne: null\}\}\},\par
+                    \{$group:\par
+                        \{"_id":"$founded_year",\par
+                            "n_fundaciones": \{$sum:1\}\}\},                    \par
+                    \{$sort:\{"_id":1\}\}\par
+
+\pard\sa200\sl276\slmult1\qj                     ])\par
+
+\pard\sl276\slmult1\qj db.companies.aggregate([\par
+                    \{$match: \{"deadpooled_year": \{$ne: null\}\}\},\par
+                    \{$group:\par
+                        \{"_id":"$deadpooled_year",\par
+                            "n_desapariciones": \{$sum:1\}\}\},                    \par
+                    \{$sort:\{"_id":1\}\}\par
+
+\pard\sa200\sl276\slmult1\qj                     ]) \par
+\cf2 # COMPA\'d1\'cdAS QUE FUERON ADQUIRIDAS POR A\'d1O\cf0\par
+
+\pard\sl276\slmult1\qj db.companies.aggregate([\par
+                    \{$match: \{"acquisition.acquired_year": \{$ne: null\}\}\},\par
+                    \{$group:\par
+                        \{"_id":"$acquisition.acquired_year",\par
+                            "n_adquisiciones": \{$sum:1\}\}\},                    \par
+                    \{$sort:\{"_id":1\}\}\par
+
+\pard\sa200\sl276\slmult1\qj                     ])   \par
+\cf2\par
+# APLANAMIENTO POR ADQUISICIONES DE EMPRESAS\par
+
+\pard\sl276\slmult1\qj\cf0 db.companies.aggregate([\par
+                    \{$unwind: "$acquisitions"\},\par
+                    \{$project: \{"_id":0\}\},\par
+\tab\tab\{$out: "companies_acquisitions"\}\par
+
+\pard\sa200\sl276\slmult1\qj                       ])\par
+\cf2 # N\'daMERO, VALOR TOTAL Y VALOR MEDIO DE LAS ADQUISICIONES POR A\'d1O\par
+
+\pard\sl276\slmult1\qj\cf0 db.companies_acquisitions.aggregate([\par
+                    \{$match: \{"acquisitions.acquired_year": \{$ne: null\}, \par
+                    "acquisitions.price_amount": \{$ne: null\}\}\},      \par
+                    \{$group:\par
+                        \{"_id":"$acquisitions.acquired_year",\par
+                            "n_adquisiciones": \{$sum:1\},\par
+                            "total": \{$sum: "$acquisitions.price_amount"\}\}\},\par
+                    \{$project:\par
+                        \{"_id":1,\par
+                         "n_adquisiciones":1,\par
+                         "valor_M$":\{$divide: ["$total", 1000000]\},\par
+                         "precio_medio": \{$divide: ["$total", \par
+                             \{$multiply:["$n_adquisiciones",1000000]\}]\}\}\},\par
+                    \{$sort:\{"_id":1\}\}\par
+
+\pard\sa200\sl276\slmult1\qj                     ])\par
+\par
+\cf2 # APLANAMIENTO POR FINANCIACIONES DE EMPRESAS\cf0\par
+
+\pard\sl276\slmult1\qj db.companies.aggregate([\par
+                    \{$unwind: "$funding_rounds"\},\par
+                    \{$project: \{"_id":0\}\},\par
+\tab\tab\{$out: "companies_funding"\}\par
+
+\pard\sa200\sl276\slmult1\qj                       ]) \par
+\cf2 # N\'daMERO, M\'c1XIMO, VALOR TOTAL Y VALOR MEDIO DE LAS FINANCIACIONES POR A\'d1O\par
+
+\pard\sl276\slmult1\qj\cf0 db.companies_funding.aggregate([\par
+                    \{$match: \{"funding_rounds.funded_year": \{$ne: null\}, \par
+                    "funding_rounds.raised_amount": \{$ne: null\}\}\},      \par
+                    \{$group:\par
+                        \{"_id":"$funding_rounds.funded_year",\par
+                            "n_financiaciones": \{$sum:1\},\par
+                            "total": \{$sum: "$funding_rounds.raised_amount"\},\par
+                            "max": \{$max:"$funding_rounds.raised_amount"\}\}\},\par
+                    \{$project:\par
+                        \{"_id":1,\par
+                         "n_financiaciones":1,\par
+                         "max": \{$divide: ["$max", 1000000]\},\par
+                         "total_M$":\{$divide: ["$total", 1000000]\},\par
+                         "financiacion_media": \{$divide: ["$total", \par
+                             \{$multiply:["$n_financiaciones",1000000]\}]\}\}\},\par
+                    \{$sort:\{"_id":1\}\}\par
+
+\pard\sa200\sl276\slmult1\qj                     ])  \par
+\par
+\cf2 # APLANAMIENTO POR INVERSIONES DE EMPRESAS\cf0\par
+
+\pard\sl276\slmult1\qj db.companies.aggregate([\par
+                    \{$unwind: "$investments"\},\par
+                    \{$project: \{"_id":0\}\},\par
+\tab\tab\{$out: "companies_investments"\}\par
+
+\pard\sa200\sl276\slmult1\qj                       ])\par
+\cf2 # LAS 3 EMPRESAS CON MAYOR INVERSION EN OTRAS DURANTE LA CRISIS 2008-2009\par
+
+\pard\sl276\slmult1\qj\cf0 db.companies_investments.aggregate([\par
+                    \{$match: \{"investments.funding_round.funded_year": \{$in: [2008,2009]\}, \par
+                    "investments.funding_round.raised_amount": \{$ne: null\}\}\},      \par
+                    \{$group:\par
+                        \{"_id":"$name",\par
+                            "n_inversiones": \{$sum:1\},\par
+                            "total": \{$sum: "$investments.funding_round.raised_amount"\}\}\},\par
+                    \{$project:\par
+                        \{"_id":1,\par
+                         "n_inversiones":1,\par
+                         "total_M$":\{$divide: ["$total", 1000000]\}\}\},\par
+                    \{$sort:\{"total_M$":-1\}\},\par
+                    \{$limit: 3\}\par
+
+\pard\sa200\sl276\slmult1\qj                     ])\par
+\par
+\cf2 # LAS 3 EMPRESAS CON MAYOR GASTO EN ADQUISICI\'d3N DE OTRAS DURANTE LA CRISIS 2008-2009\par
+
+\pard\sl276\slmult1\qj\cf0 db.companies_acquisitions.aggregate([\par
+                    \{$match: \{"acquisitions.acquired_year": \{$in: [2008,2009]\}, \par
+                    "acquisitions.price_amount": \{$ne: null\}\}\},      \par
+                    \{$group:\par
+                        \{"_id":"$name",\par
+                            "n_adquisiciones": \{$sum:1\},\par
+                            "total": \{$sum: "$acquisitions.price_amount"\}\}\},\par
+                    \{$project:\par
+                        \{"_id":1,\par
+                         "n_adquisiciones":1,\par
+                         "total_M$":\{$divide: ["$total", 1000000]\}\}\},\par
+                    \{$sort:\{"total_M$":-1\}\},\par
+                    \{$limit: 3\}\par
+
+\pard\sa200\sl276\slmult1\qj                     ])\par
+\par
+\cf2 # LOS SECTORES M\'c1S AFECTADOS POR LA DESAPARICI\'d3N DE EMPRESAS\par
+
+\pard\sl276\slmult1\qj\cf0 db.companies.aggregate([\par
+                    \{$match: \{"category_code": \{$ne: null\}, \par
+                    "number_of_employees": \{$ne: null\}, \par
+                    "deadpooled_year": \{$in:[2009,2010,2011,2012]\}\}\},\par
+                    \{$group:\par
+                        \{"_id":"$category_code",\par
+                            "n_empresas": \{$sum:1\},\par
+                            "total_empleados": \{$sum: "$number_of_employees"\}\}\},\par
+                    \{$sort:\{"total_empleados":-1\}\},\par
+                    \{$limit: 5\}\par
+
+\pard\sa200\sl276\slmult1\qj                       ])\par
+\par
+\cf2 # APLANAMIENTO POR OFICINAS DE EMPRESAS\cf0\par
+
+\pard\sl276\slmult1\qj db.companies.aggregate([\par
+                    \{$unwind: "$offices"\},\par
+                    \{$project: \{"_id":0\}\},\par
+\tab\tab\{$out: "companies_offices"\}\par
+
+\pard\sa200\sl276\slmult1\qj                       ])\par
+\cf2 # LAS CIUDADES M\'c1S AFECTADAS POR LA DESAPARICI\'d3N DE EMPRESAS\par
+
+\pard\sl276\slmult1\qj\cf0 db.companies_offices.aggregate([\par
+                    \{$match: \{"offices.country_code": \{$ne: null\},\par
+                    "offices.city": \{$ne: null\},\par
+                    "number_of_employees": \{$ne: null\}, \par
+                    "deadpooled_year": \{$in:[2009,2010,2011,2012]\}\}\},\par
+                    \{$group:\par
+                        \{"_id":\{\par
+                            "pais": "$offices.country_code",\par
+                            "ciudad": "$offices.city"\},\par
+                          "n_empresas": \{$sum:1\},\par
+                          "total_empleados": \{$sum: "$number_of_employees"\}\}\},\par
+                    \{$sort:\{"total_empleados":-1\}\},\par
+                    \{$limit: 5\}\par
+
+\pard\sa200\sl276\slmult1\qj                       ])\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+}
+ 

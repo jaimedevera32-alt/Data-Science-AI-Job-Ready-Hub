@@ -1,0 +1,193 @@
+//DATASET DE LAS MEJORES 5000 PELÍCULAS DE IMDb
+
+// Vemos la estructura del dataset:
+db.top_5000_movies.find()
+
+// ¿Desde qué año parten las películas?
+var proyection_oldest_movie = {"_id": 0, "startYear": 1}
+var order_oldest_movie = { "startYear": 1 }
+db.top_5000_movies.find({}, proyection_oldest_movie).sort(order_oldest_movie).limit(1)
+
+// ¿De qué año son las películas más modernas?
+var proyection_newest_movie = {"_id": 0, "startYear": -1}
+var order_newest_movie = { "startYear": -1 }
+db.top_5000_movies.find({}, proyection_newest_movie).sort(order_newest_movie).limit(1)
+
+// ¿Cuáles son las 10 películas mejor valoradas según el ranking de IMDb?
+var proyection_top_IMDb_movies = {"_id": 0, "primaryTitle": 1, "startYear": 1, "rank": 1}
+var order_top_IMDb_movies = {"rank": 1}
+db.top_5000_movies.find({}, proyection_top_IMDb_movies).sort(order_top_IMDb_movies).limit(10)
+
+// ¿Cuáles son las 10 películas peor valoradas según el ranking de IMDb?
+var proyection_bottom_IMDb_movies = {"_id": 0, "primaryTitle": 1, "startYear": 1, "rank": 1}
+var order_bottom_IMDb_movies = {"rank": -1}
+db.top_5000_movies.find({}, proyection_bottom_IMDb_movies).sort(order_bottom_IMDb_movies).limit(10)
+
+
+// ¿Cuáles son las 10 películas mejor valoradas por los usuarios? Ante empate, se muestra la más antigua primero:
+var proyection_top_users_movies = {"_id": 0, "primaryTitle": 1, "startYear": 1, "averageRating": 1}
+var order_top_users_movies = {"averageRating": -1, "startYear": 1}
+db.top_5000_movies.find({}, proyection_top_users_movies).sort(order_top_users_movies).limit(10)
+
+// ¿Cuáles son las 10 películas peor valoradas por los usuarios? Ante empate, se muestra la más nueva primero:
+var proyection_top_users_movies = {"_id": 0, "primaryTitle": 1, "startYear": 1, "averageRating": 1}
+var order_top_users_movies = {"averageRating": 1, "startYear": -1}
+db.top_5000_movies.find({}, proyection_top_users_movies).sort(order_top_users_movies).limit(10)
+
+//Estas 10 pelis mejor y peor valoradas por los usuarios no son representativas. Habría que tener en cuenta el nº de votos:
+
+// Estadísticas rápidas del número de votos de los usuarios
+db.top_5000_movies.aggregate([
+    {
+        $group: {
+            _id: null,
+            "min_votos": {$min: "$numVotes"},
+            "max_votos": {$max: "$numVotes"},
+            "avg_votos": {$avg: "$numVotes"}
+        }
+    }
+])
+
+// Teniendo en cuenta el nº de votos, ¿cuáles son las 10 películas mejor valoradas por los usuarios?
+var umbral_votos = 166456.785
+var filter_top_users_movies = {"numVotes": {"$gte": umbral_votos}}
+var proyection_top_users_movies = {"_id": 0, "primaryTitle": 1, "startYear": 1, "averageRating": 1, "numVotes": 1}
+var order_top_users_movies = {"averageRating": -1, "numVotes": -1}
+db.top_5000_movies.find(filter_top_users_movies, proyection_top_users_movies).sort(order_top_users_movies).limit(10)
+
+// Teniendo en cuenta el nº de votos, ¿cuáles son las 10 películas peor valoradas por los usuarios?
+var umbral_votos = 166456.785
+var filter_bottom_users_movies = {"numVotes": {"$gte": umbral_votos}}
+var proyection_bottom_users_movies = {"_id": 0, "primaryTitle": 1, "startYear": 1, "averageRating": 1, "numVotes": 1}
+var order_bottom_users_movies = {"averageRating": 1, "numVotes": -1}
+db.top_5000_movies.find(filter_bottom_users_movies, proyection_bottom_users_movies).sort(order_bottom_users_movies).limit(10)
+
+// ¿Cuál es la mejor y peor década teniendo en cuenta las votaciones de las 50 mejores películas de cada década?
+var pipeline_top_50_decade = [
+    {
+        $project: {
+            "decada": {$subtract: ["$startYear", {$mod: ["$startYear", 10]}]},
+            "averageRating": 1,
+            "originalTitle": 1
+        }
+    },
+    {
+        $setWindowFields: {
+            partitionBy: "$decada",
+            sortBy: {"averageRating": -1}
+            output: {
+                "rank_en_decada": {
+                    $rank: {}
+                }
+            }
+        }
+    },
+    {
+        $match: {"rank_en_decada": {$lte: 50}} 
+    },
+    {
+        $group: {
+            "_id": "$decada",
+            "calidad_top_50": {$avg: "$averageRating"}
+        }
+    },
+    { $sort: {"calidad_top_50": -1}}
+]
+db.top_5000_movies.aggregate(pipeline_top_50_decade)
+
+// ¿Hay relación entre la duración de una película y su votación? Rango en minutos: 0-90, 90-120, 120-150, 150-300, 300-400.
+var pipeline_time = [
+    {
+        $bucket: {
+            groupBy: "$runtimeMinutes",
+            boundaries: [0, 90, 120, 150, 300, 400],
+            output: {
+                "total_pelis": {$sum: 1},
+                "nota_media": {$avg: "$averageRating"}
+            }
+        }
+    }
+]
+db.top_5000_movies.aggregate(pipeline_time)
+
+// ¿Quiénes son los 10 mejores directores teniendo en cuenta que tengan al menos 5 películas en este TOP?
+var pipeline_top_10_directors = [
+    {$sort: {"startYear": 1}}, 
+    {
+        $group: {
+            "_id": "$directors", 
+            "nota_media": {$avg: "$averageRating"},
+            "cantidad_peliculas_dirigidas": {$sum: 1},
+            "peliculas": {$push: "$primaryTitle"} 
+        }
+    },
+    {
+        $match: {
+            "cantidad_peliculas_dirigidas": {$gte: 5}
+        }
+    },
+    {$sort: {"nota_media": -1}},
+    { $limit: 5 }
+]
+db.top_5000_movies.aggregate(pipeline_top_10_directors)
+
+// ¿Quiénes son los 10 peores directores teniendo en cuenta que tengan al menos 5 películas en este TOP?
+var pipeline_bottom_10_directors = [
+    {$sort: {"startYear": 1}}, 
+    {
+        $group: {
+            "_id": "$directors", 
+            "nota_media": {$avg: "$averageRating"},
+            "cantidad_peliculas_dirigidas": {$sum: 1},
+            "peliculas": {$push: "$primaryTitle"} 
+        }
+    },
+    {
+        $match: {
+            "cantidad_peliculas_dirigidas": {$gte: 5}
+        }
+    },
+    {$sort: {"nota_media": 1}},
+    { $limit: 5 }
+]
+db.top_5000_movies.aggregate(pipeline_bottom_10_directors)
+
+// ¿Cuáles son los mejores géneros (> 50 pelis)? ¿Cúantas películas hay de ese género? ¿Cuál es la mejor y su nota? ¿Cuál es la nota media del género?
+var pipeline_final_genres = [
+    {
+        $project:
+        {
+            "primaryTitle": 1,
+            "averageRating": 1,
+            "genres_array": { $split: ["$genres", ", "] } 
+        }
+    },
+    { $unwind: "$genres_array" },
+    { $sort: { "averageRating": -1 } },
+    {
+        $group: {
+            "_id": "$genres_array",
+            "nota_media_genero": { $avg: "$averageRating" },
+            "total_peliculas": { $sum: 1 },
+            "mejor_pelicula": { $first: "$primaryTitle" },
+            "nota_maxima": { $first: "$averageRating" }
+        }
+    },
+    {
+        $match: {
+            "total_peliculas": { $gte: 50 }
+        }
+    },
+    {
+        $project: {
+            "genero": "$_id",
+            "nota_media": { $round: ["$nota_media_genero", 2] },
+            "total_peliculas": 1,
+            "mejor_pelicula": 1,
+            "nota_maxima": 1,
+            "_id": 0
+        }
+    },
+    { $sort: { "nota_media": -1 } }
+]
+db.top_5000_movies.aggregate(pipeline_final_genres)

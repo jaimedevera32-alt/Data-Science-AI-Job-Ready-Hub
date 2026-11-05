@@ -1,0 +1,158 @@
+
+# EVALUACIÓN DE BASES DE DATOS NO SQL
+# Alberto Castelló
+
+# CARGA DE DATOS
+mongoimport --db clase --collection companies --type json --file "D:\MASTER\4_BASES DATOS NO SQL\companies.json" --drop --stopOnError
+
+# COMPAÑÍAS FUNDADAS Y DESAPARECIDAS POR AÑO
+db.companies.aggregate([
+                    {$match: {"founded_year": {$ne: null}}},
+                    {$group:
+                        {"_id":"$founded_year",
+                            "n_fundaciones": {$sum:1}}},                    
+                    {$sort:{"_id":1}}
+                    ])
+db.companies.aggregate([
+                    {$match: {"deadpooled_year": {$ne: null}}},
+                    {$group:
+                        {"_id":"$deadpooled_year",
+                            "n_desapariciones": {$sum:1}}},                    
+                    {$sort:{"_id":1}}
+                    ]) 
+# COMPAÑÍAS QUE FUERON ADQUIRIDAS POR AÑO
+db.companies.aggregate([
+                    {$match: {"acquisition.acquired_year": {$ne: null}}},
+                    {$group:
+                        {"_id":"$acquisition.acquired_year",
+                            "n_adquisiciones": {$sum:1}}},                    
+                    {$sort:{"_id":1}}
+                    ])   
+
+# APLANAMIENTO POR ADQUISICIONES DE EMPRESAS
+db.companies.aggregate([
+                    {$unwind: "$acquisitions"},
+                    {$project: {"_id":0}},
+		{$out: "companies_acquisitions"}
+                      ])
+# NÚMERO, VALOR TOTAL Y VALOR MEDIO DE LAS ADQUISICIONES POR AÑO
+db.companies_acquisitions.aggregate([
+                    {$match: {"acquisitions.acquired_year": {$ne: null}, 
+                    "acquisitions.price_amount": {$ne: null}}},      
+                    {$group:
+                        {"_id":"$acquisitions.acquired_year",
+                            "n_adquisiciones": {$sum:1},
+                            "total": {$sum: "$acquisitions.price_amount"}}},
+                    {$project:
+                        {"_id":1,
+                         "n_adquisiciones":1,
+                         "valor_M$":{$divide: ["$total", 1000000]},
+                         "precio_medio": {$divide: ["$total", 
+                             {$multiply:["$n_adquisiciones",1000000]}]}}},
+                    {$sort:{"_id":1}}
+                    ])
+
+# APLANAMIENTO POR FINANCIACIONES DE EMPRESAS
+db.companies.aggregate([
+                    {$unwind: "$funding_rounds"},
+                    {$project: {"_id":0}},
+		{$out: "companies_funding"}
+                      ]) 
+# NÚMERO, MÁXIMO, VALOR TOTAL Y VALOR MEDIO DE LAS FINANCIACIONES POR AÑO
+db.companies_funding.aggregate([
+                    {$match: {"funding_rounds.funded_year": {$ne: null}, 
+                    "funding_rounds.raised_amount": {$ne: null}}},      
+                    {$group:
+                        {"_id":"$funding_rounds.funded_year",
+                            "n_financiaciones": {$sum:1},
+                            "total": {$sum: "$funding_rounds.raised_amount"},
+                            "max": {$max:"$funding_rounds.raised_amount"}}},
+                    {$project:
+                        {"_id":1,
+                         "n_financiaciones":1,
+                         "max": {$divide: ["$max", 1000000]},
+                         "total_M$":{$divide: ["$total", 1000000]},
+                         "financiacion_media": {$divide: ["$total", 
+                             {$multiply:["$n_financiaciones",1000000]}]}}},
+                    {$sort:{"_id":1}}
+                    ])  
+
+# APLANAMIENTO POR INVERSIONES DE EMPRESAS
+db.companies.aggregate([
+                    {$unwind: "$investments"},
+                    {$project: {"_id":0}},
+		{$out: "companies_investments"}
+                      ])
+# LAS 3 EMPRESAS CON MAYOR INVERSION EN OTRAS DURANTE LA CRISIS 2008-2009
+db.companies_investments.aggregate([
+                    {$match: {"investments.funding_round.funded_year": {$in: [2008,2009]}, 
+                    "investments.funding_round.raised_amount": {$ne: null}}},      
+                    {$group:
+                        {"_id":"$name",
+                            "n_inversiones": {$sum:1},
+                            "total": {$sum: "$investments.funding_round.raised_amount"}}},
+                    {$project:
+                        {"_id":1,
+                         "n_inversiones":1,
+                         "total_M$":{$divide: ["$total", 1000000]}}},
+                    {$sort:{"total_M$":-1}},
+                    {$limit: 3}
+                    ])
+
+# LAS 3 EMPRESAS CON MAYOR GASTO EN ADQUISICIÓN DE OTRAS DURANTE LA CRISIS 2008-2009
+db.companies_acquisitions.aggregate([
+                    {$match: {"acquisitions.acquired_year": {$in: [2008,2009]}, 
+                    "acquisitions.price_amount": {$ne: null}}},      
+                    {$group:
+                        {"_id":"$name",
+                            "n_adquisiciones": {$sum:1},
+                            "total": {$sum: "$acquisitions.price_amount"}}},
+                    {$project:
+                        {"_id":1,
+                         "n_adquisiciones":1,
+                         "total_M$":{$divide: ["$total", 1000000]}}},
+                    {$sort:{"total_M$":-1}},
+                    {$limit: 3}
+                    ])
+
+# LOS SECTORES MÁS AFECTADOS POR LA DESAPARICIÓN DE EMPRESAS
+db.companies.aggregate([
+                    {$match: {"category_code": {$ne: null}, 
+                    "number_of_employees": {$ne: null}, 
+                    "deadpooled_year": {$in:[2009,2010,2011,2012]}}},
+                    {$group:
+                        {"_id":"$category_code",
+                            "n_empresas": {$sum:1},
+                            "total_empleados": {$sum: "$number_of_employees"}}},
+                    {$sort:{"total_empleados":-1}},
+                    {$limit: 5}
+                      ])
+
+# APLANAMIENTO POR OFICINAS DE EMPRESAS
+db.companies.aggregate([
+                    {$unwind: "$offices"},
+                    {$project: {"_id":0}},
+		{$out: "companies_offices"}
+                      ])
+# LAS CIUDADES MÁS AFECTADAS POR LA DESAPARICIÓN DE EMPRESAS
+db.companies_offices.aggregate([
+                    {$match: {"offices.country_code": {$ne: null},
+                    "offices.city": {$ne: null},
+                    "number_of_employees": {$ne: null}, 
+                    "deadpooled_year": {$in:[2009,2010,2011,2012]}}},
+                    {$group:
+                        {"_id":{
+                            "pais": "$offices.country_code",
+                            "ciudad": "$offices.city"},
+                          "n_empresas": {$sum:1},
+                          "total_empleados": {$sum: "$number_of_employees"}}},
+                    {$sort:{"total_empleados":-1}},
+                    {$limit: 5}
+                      ])
+
+
+
+
+
+
+

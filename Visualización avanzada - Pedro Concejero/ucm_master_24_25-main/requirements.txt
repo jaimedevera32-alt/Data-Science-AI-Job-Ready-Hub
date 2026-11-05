@@ -1,0 +1,14 @@
+dash
+folium
+geopandas
+matplotlib
+notebook
+numpy
+pandas
+plotly
+plotnine
+scikit-learn
+scikit-misc
+scipy
+seaborn
+shiny
