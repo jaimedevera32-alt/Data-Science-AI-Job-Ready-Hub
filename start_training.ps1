@@ -17,3 +17,4 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 }
 
 python daily_training\runner.py
+
