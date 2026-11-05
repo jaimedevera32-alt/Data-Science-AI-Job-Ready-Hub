@@ -25,3 +25,4 @@ if not exist ".venv" (
 python daily_training\runner.py
 
 pause
+
